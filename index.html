@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WRO 2026 — Mosaic Masters Score Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --card: #1a1e2a;
+    --border: #252a38;
+    --accent: #f5c842;
+    --accent2: #4af0b0;
+    --accent3: #e05aff;
+    --red: #ff4f6a;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --yellow: #f5c842;
+    --blue: #4a9af0;
+    --green: #4af0b0;
+    --white-tile: #e8eaf0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BACKGROUND GRID */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(245,200,66,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,200,66,.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* GLOW BLOBS */
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .blob1 { width: 600px; height: 600px; background: var(--accent); top: -200px; left: -200px; }
+  .blob2 { width: 500px; height: 500px; background: var(--accent3); bottom: -150px; right: -100px; }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 56px 24px 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-badge {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(245,200,66,.1);
+    border: 1px solid rgba(245,200,66,.3);
+    padding: 6px 16px;
+    border-radius: 100px;
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 8vw, 96px);
+    letter-spacing: 4px;
+    line-height: 0.9;
+    color: var(--text);
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 300;
+    letter-spacing: 1px;
+  }
+
+  /* TEAM INFO */
+  .team-row {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 16px;
+    max-width: 900px;
+    margin: 36px auto 0;
+    padding: 0 24px;
+    flex-wrap: wrap;
+  }
+
+  .team-field {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .team-field label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .team-field input, .team-field select {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color .2s;
+  }
+
+  .team-field input:focus, .team-field select:focus {
+    border-color: var(--accent);
+  }
+
+  .team-field select option { background: var(--card); }
+
+  /* MAIN LAYOUT */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 24px 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* SECTION CARD */
+  .section-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+    transition: border-color .3s;
+  }
+
+  .section-card:hover { border-color: rgba(245,200,66,.2); }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,.02);
+  }
+
+  .section-number {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .section-max {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .section-max strong {
+    color: var(--accent);
+    font-size: 15px;
+  }
+
+  .section-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* TASK ROW */
+  .task-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1px solid transparent;
+    transition: border-color .2s, background .2s;
+  }
+
+  .task-row:hover { border-color: var(--border); background: rgba(26,30,42,.8); }
+
+  .task-info {
+    flex: 1;
+  }
+
+  .task-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .task-hint {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .task-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  /* RADIO GROUP */
+  .radio-group {
+    display: flex;
+    gap: 6px;
+  }
+
+  .radio-opt {
+    position: relative;
+  }
+
+  .radio-opt input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .radio-opt label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 54px;
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    transition: all .15s;
+    white-space: nowrap;
+  }
+
+  .radio-opt input:checked + label {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 600;
+  }
+
+  .radio-opt label:hover { border-color: var(--accent); color: var(--accent); }
+  .radio-opt input:checked + label:hover { color: #000; }
+
+  /* COUNTER */
+  .counter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px;
+  }
+
+  .counter-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;
+    border: none;
+    background: var(--border);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s;
+    font-family: 'DM Mono', monospace;
+    line-height: 1;
+  }
+
+  .counter-btn:hover { background: var(--accent); color: #000; }
+
+  .counter-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    min-width: 28px;
+    text-align: center;
+    color: var(--text);
+  }
+
+  .counter-max {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    padding-right: 4px;
+  }
+
+  /* TASK SCORE BADGE */
+  .task-score-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    background: rgba(245,200,66,.1);
+    color: var(--accent);
+    border: 1px solid rgba(245,200,66,.2);
+    border-radius: 8px;
+    padding: 4px 10px;
+    min-width: 52px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  /* COLOUR DOTS */
+  .color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: -4px;
+  }
+
+  /* MOSAIC GRID */
+  .mosaic-note {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 12px 16px;
+    background: rgba(245,200,66,.05);
+    border: 1px solid rgba(245,200,66,.15);
+    border-radius: 10px;
+    line-height: 1.6;
+  }
+
+  .mosaic-note strong { color: var(--accent); }
+
+  /* TILE COUNTERS */
+  .tile-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+  }
+
+  .tile-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .tile-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .tile-label .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* SCORE DISPLAY */
+  .score-panel {
+    position: sticky;
+    bottom: 24px;
+    z-index: 10;
+    background: var(--card);
+    border: 1px solid rgba(245,200,66,.3);
+    border-radius: 18px;
+    padding: 20px 28px;
+
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 8px 48px rgba(0,0,0,.5), 0 0 0 1px rgba(245,200,66,.1);
+    flex-wrap: wrap;
+    backdrop-filter: blur(10px);
+  }
+
+  .score-panel::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(245,200,66,.15), transparent, rgba(74,240,176,.1));
+    z-index: -1;
+  }
+
+  .score-block {
+    flex: 1;
+    min-width: 100px;
+    text-align: center;
+  }
+
+  .score-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 4px;
+  }
+
+  .score-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    line-height: 1;
+  }
+
+  .score-value.total { color: var(--accent); font-size: 56px; }
+  .score-value.tools { color: #a78bfa; }
+  .score-value.mosaic { color: var(--blue); }
+  .score-value.cement { color: var(--green); }
+  .score-value.barrier { color: var(--red); }
+
+  .score-divider {
+    width: 1px;
+    height: 48px;
+    background: var(--border);
+  }
+
+  .progress-bar-wrap {
+    flex: 2;
+    min-width: 200px;
+  }
+
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 6px;
+  }
+
+  .progress-bar {
+    height: 8px;
+    background: var(--border);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 100px;
+    transition: width .4s cubic-bezier(.4,0,.2,1);
+    width: 0%;
+  }
+
+  /* RESET BTN */
+  .btn-reset {
+    background: rgba(255,79,106,.1);
+    border: 1px solid rgba(255,79,106,.3);
+    color: var(--red);
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .2s;
+    letter-spacing: .5px;
+    white-space: nowrap;
+  }
+
+  .btn-reset:hover { background: rgba(255,79,106,.2); border-color: var(--red); }
+
+  /* ANIMATION */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-card { animation: fadeUp .4s ease both; }
+  .section-card:nth-child(1) { animation-delay: .05s; }
+  .section-card:nth-child(2) { animation-delay: .1s; }
+  .section-card:nth-child(3) { animation-delay: .15s; }
+  .section-card:nth-child(4) { animation-delay: .2s; }
+
+  @media (max-width: 600px) {
+    .radio-group { flex-wrap: wrap; }
+    .score-panel { bottom: 12px; }
+    .score-value.total { font-size: 40px; }
+    .tile-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+
+<header>
+  <div class="header-badge">WRO 2026 · RoboMission Senior</div>
+  <h1>MOSAIC<br><span>MASTERS</span></h1>
+  <p class="subtitle">Score Calculator — International Game Rules v1.0 · Max 233 pts</p>
+
+  <div class="team-row">
+    <div class="team-field">
+      <label>Team Name</label>
+      <input type="text" id="teamName" placeholder="e.g. RoboWarriors" />
+    </div>
+    <div class="team-field" style="max-width:130px;">
+      <label>Round</label>
+      <select id="roundNum">
+        <option>Round 1</option>
+        <option>Round 2</option>
+        <option>Round 3</option>
+        <option>Final</option>
+      </select>
+    </div>
+    <div class="team-field" style="max-width:160px;">
+      <label>Time (seconds)</label>
+      <input type="number" id="timeField" placeholder="e.g. 120" min="0" max="120" />
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- SECTION 1: TOOLS -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-number">1</div>
+      <div class="section-title">Provide the Tools</div>
+      <div class="section-max">Max <strong>45</strong> pts</div>
+    </div>
+    <div class="section-body">
+
+      <!-- Rectangular Trowel -->
+      <div class="task-row">
+        <div class="task-info">
+          <div class="task-name">🔧 Rectangular Trowel</div>
+          <div class="task-hint">Target: <strong>Sponsor Area</strong> (white area with logos, next to start area)</div>
+        </div>
+        <div class="task-controls">
+          <div class="radio-group">
+            <div class="radio-opt">
+              <input type="radio" name="trowel_rect" id="tr_c" value="15" onchange="calc()">
+              <label for="tr_c">15 pts<br><span style="font-size:9px">Completely</span></label>
+            </div>
+            <div class="radio-opt">
+              <input type="radio" name="trowel_rect" id="tr_p" value="5" onchange="calc()">
+              <label for="tr_p">5 pts<br><span style="font-size:9px">Partly</span></label>
+            </div>
+            <div class="radio-opt">
+              <input type="radio" name="trowel_rect" id="tr_n" value="0" checked onchange="calc()">
+              <label for="tr_n">0 pts<br><span style="font-size:9px">Outside</span></label>
+            </div>
+          </div>
+          <div class="task-score-badge" id="score_trowel_rect">15</div>
+        </div>
+      </div>
+
+      <!-- Cement Bowl -->
+      <div class="task-row">
+        <div class="task-info">
+          <div class="task-name">🪣 Cement Bowl</div>
+          <div class="task-hint">Target: <strong>Parking Space</strong> (entire brown area incl. cars, pool, palm trees)</div>
+        </div>
+        <div class="task-controls">
+          <div class="radio-group">
+            <div class="radio-opt">
+              <input type="radio" name="cement_bowl" id="cb_c" value="15" onchange="calc()">
+              <label for="cb_c">15 pts<br><span style="font-size:9px">Completely</span></label>
+            </div>
+            <div class="radio-opt">
+              <input type="radio" name="cement_bowl" id="cb_p" value="5" onchange="calc()">
+              <label for="cb_p">5 pts<br><span style="font-size:9px">Partly</span></label>
+            </div>
+            <div class="radio-opt">
+              <input type="radio" name="cement_bowl" id="cb_n" value="0" checked onchange="calc()">
+              <label for="cb_n">0 pts<br><span style="font-size:9px">Outside</span></label>
+            </div>
+          </div>
+          <div class="task-score-badge" id="score_cement_bowl">15</div>
+        </div>
+      </div>
+
+      <!-- Masonry Trowel -->
+      <div class="task-row">
+        <div class="task-info">
+          <div class="task-name">🧱 Masonry Trowel</div>
+          <div class="task-hint">Target: <strong>Start Area</strong> (white area where robot starts, excl. blue border)</div>
+        </div>
+        <div class="task-controls">
+          <div class="radio-group">
+            <div class="radio-opt">
+              <input type="radio" name="masonry_trowel" id="mt_c" value="15" onchange="calc()">
+              <label for="mt_c">15 pts<br><span style="font-size:9px">Completely</span></label>
+            </div>
+            <div class="radio-opt">
+              <input type="radio" name="masonry_trowel" id="mt_p" value="5" onchange="calc()">
+              <label for="mt_p">5 pts<br><span style="font-size:9px">Partly</span></label>
+            </div>
+            <div class="radio-opt">
+              <input type="radio" name="masonry_trowel" id="mt_n" value="0" checked onchange="calc()">
+              <label for="mt_n">0 pts<br><span style="font-size:9px">Outside</span></label>
+            </div>
+          </div>
+          <div class="task-score-badge" id="score_masonry_trowel">15</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SECTION 2: MOSAIC -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-number">2</div>
+      <div class="section-title">Put the Mosaic in Place</div>
+      <div class="section-max">Max <strong>120</strong> pts</div>
+    </div>
+    <div class="section-body">
+      <div class="mosaic-note">
+        <strong>Rules:</strong> The mosaic frame has 12 spots (randomly assigned colours). Place tiles matching the pattern.
+        <br>✅ <strong>Correctly placed (10 pts):</strong> Tile matches colour AND is evenly on the ground.
+        <br>⚠️ <strong>Incorrectly placed (5 pts):</strong> Wrong colour, or not evenly on the ground (but touches it).
+        <br>❌ <strong>No points (0 pts):</strong> Tile does not touch the ground.
+        <br>Only one element scores per spot. 12 spots × 10 pts = 120 max.
+      </div>
+
+      <div class="tile-row">
+        <!-- Yellow Correct -->
+        <div class="tile-item">
+          <div class="tile-label"><div class="dot" style="background:#f5c842;"></div>Yellow — Correct</div>
+          <div class="counter">
+            <button class="counter-btn" onclick="changeCount('yc',-1)">−</button>
+            <span class="counter-val" id="val_yc">0</span>
+            <span class="counter-max">/ 6</span>
+            <button class="counter-btn" onclick="changeCount('yc',1)">+</button>
+          </div>
+        </div>
+        <!-- Yellow Incorrect -->
+        <div class="tile-item">
+          <div class="tile-label"><div class="dot" style="background:#f5c842; opacity:.5;"></div>Yellow — Incorrect</div>
+          <div class="counter">
+            <button class="counter-btn" onclick="changeCount('yi',-1)">−</button>
+            <span class="counter-val" id="val_yi">0</span>
+            <span class="counter-max">/ 6</span>
+            <button class="counter-btn" onclick="changeCount('yi',1)">+</button>
+          </div>
+        </div>
+        <!-- Blue Correct -->
+        <div class="tile-item">
+          <div class="tile-label"><div class="dot" style="background:#4a9af0;"></div>Blue — Correct</div>
+          <div class="counter">
+            <button class="counter-btn" onclick="changeCount('bc',-1)">−</button>
+            <span class="counter-val" id="val_bc">0</span>
+            <span class="counter-max">/ 6</span>
+            <button class="counter-btn" onclick="changeCount('bc',1)">+</button>
+          </div>
+        </div>
+        <!-- Blue Incorrect -->
+        <div class="tile-item">
+          <div class="tile-label"><div class="dot" style="background:#4a9af0; opacity:.5;"></div>Blue — Incorrect</div>
+          <div class="counter">
+            <button class="counter-btn" onclick="changeCount('bi',-1)">−</button>
+            <span class="counter-val" id="val_bi">0</span>
+            <span class="counter-max">/ 6</span>
+            <button class="counter-btn" onclick="changeCount('bi',1)">+</button>
+          </div>
+        </div>
+        <!-- Green Correct -->
+        <div class="tile-item">
+          <div class="tile-label"><div class="dot" style="background:#4af0b0;"></div>Green — Correct</div>
+          <div class="counter">
+            <button class="counter-btn" onclick="changeCount('gc',-1)">−</button>
+            <span class="counter-val" id="val_gc">0</span>
+            <span class="counter-max">/ 6</span>
+            <button class="counter-btn" onclick="changeCount('gc',1)">+</button>
+          </div>
+        </div>
+        <!-- Green Incorrect -->
+        <div class="tile-item">
+          <div class="tile-label"><div class="dot" style="background:#4af0b0; opacity:.5;"></div>Green — Incorrect</div>
+          <div class="counter">
+            <button class="counter-btn" onclick="changeCount('gi',-1)">−</button>
+            <span class="counter-val" id="val_gi">0</span>
+            <span class="counter-max">/ 6</span>
+            <button class="counter-btn" onclick="changeCount('gi',1)">+</button>
+          </div>
+        </div>
+        <!-- White Correct -->
+        <div class="tile-item">
+          <div class="tile-label"><div class="dot" style="background:#e8eaf0; border:1px solid #333;"></div>White — Correct</div>
+          <div class="counter">
+            <button class="counter-btn" onclick="changeCount('wc',-1)">−</button>
+            <span class="counter-val" id="val_wc">0</span>
+            <span class="counter-max">/ 6</span>
+            <button class="counter-btn" onclick="changeCount('wc',1)">+</button>
+          </div>
+        </div>
+        <!-- White Incorrect -->
+        <div class="tile-item">
+          <div class="tile-label"><div class="dot" style="background:#e8eaf0; opacity:.4; border:1px solid #333;"></div>White — Incorrect</div>
+          <div class="counter">
+            <button class="counter-btn" onclick="changeCount('wi',-1)">−</button>
+            <span class="counter-val" id="val_wi">0</span>
+            <span class="counter-max">/ 6</span>
+            <button class="counter-btn" onclick="changeCount('wi',1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="task-row" style="justify-content:space-between; align-items:center;">
+        <div>
+          <div class="task-name">Mosaic Subtotal</div>
+          <div class="task-hint" id="mosaic_breakdown">0 correct × 10 pts + 0 incorrect × 5 pts</div>
+        </div>
+        <div class="task-score-badge" id="score_mosaic" style="font-size:18px; padding:8px 16px;">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: CEMENT -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-number">3</div>
+      <div class="section-title">Deliver the Cement</div>
+      <div class="section-max">Max <strong>40</strong> pts</div>
+    </div>
+    <div class="section-body">
+      <div class="mosaic-note">
+        <strong>Rule:</strong> 1 pt per cement element <strong>completely</strong> in its matching-coloured cement target area.
+        Stacked elements count if the ones beneath them are also completely in. 10 elements × 4 colours = 40 max.
+      </div>
+
+      <div class="tile-row">
+        <div class="tile-item">
+          <div class="tile-label"><div class="dot" style="background:#f5c842;"></div>Yellow Cement</div>
+          <div class="counter">
+            <button class="counter-btn" onclick="changeCount('cy',-1)">−</button>
+            <span class="counter-val" id="val_cy">0</span>
+            <span class="counter-max">/ 10</span>
+            <button class="counter-btn" onclick="changeCount('cy',1)">+</button>
+          </div>
+        </div>
+        <div class="tile-item">
+          <div class="tile-label"><div class="dot" style="background:#4a9af0;"></div>Blue Cement</div>
+          <div class="counter">
+            <button class="counter-btn" onclick="changeCount('cb2',-1)">−</button>
+            <span class="counter-val" id="val_cb2">0</span>
+            <span class="counter-max">/ 10</span>
+            <button class="counter-btn" onclick="changeCount('cb2',1)">+</button>
+          </div>
+        </div>
+        <div class="tile-item">
+          <div class="tile-label"><div class="dot" style="background:#4af0b0;"></div>Green Cement</div>
+          <div class="counter">
+            <button class="counter-btn" onclick="changeCount('cg',-1)">−</button>
+            <span class="counter-val" id="val_cg">0</span>
+            <span class="counter-max">/ 10</span>
+            <button class="counter-btn" onclick="changeCount('cg',1)">+</button>
+          </div>
+        </div>
+        <div class="tile-item">
+          <div class="tile-label"><div class="dot" style="background:#e8eaf0; border:1px solid #333;"></div>White Cement</div>
+          <div class="counter">
+            <button class="counter-btn" onclick="changeCount('cw',-1)">−</button>
+            <span class="counter-val" id="val_cw">0</span>
+            <span class="counter-max">/ 10</span>
+            <button class="counter-btn" onclick="changeCount('cw',1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="task-row" style="justify-content:space-between; align-items:center;">
+        <div>
+          <div class="task-name">Cement Subtotal</div>
+          <div class="task-hint" id="cement_breakdown">0 elements × 1 pt</div>
+        </div>
+        <div class="task-score-badge" id="score_cement" style="font-size:18px; padding:8px 16px;">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: BARRIERS -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-number">4</div>
+      <div class="section-title">Bonus for Barriers</div>
+      <div class="section-max">Max <strong>28</strong> pts</div>
+    </div>
+    <div class="section-body">
+      <div class="mosaic-note">
+        <strong>Rule:</strong> 7 pts per barrier that is <strong>not damaged and not moved</strong>.
+        <br>Damaged = ball/brick fell off. Moved = any part touches the mat outside of the grey area.
+        <br>4 barriers total: 2× red (with blue balls) + 2× black (with red balls).
+      </div>
+
+      <div class="tile-row" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="tile-item" style="align-items:center; text-align:center;">
+          <div class="tile-label" style="justify-content:center;"><div class="dot" style="background:#ff4f6a;"></div>Barrier 1</div>
+          <div class="radio-group" style="flex-direction:column; gap:5px; align-items:center;">
+            <div class="radio-opt">
+              <input type="radio" name="bar1" id="b1_ok" value="7" checked onchange="calc()">
+              <label for="b1_ok" style="min-width:70px;">7 pts ✅</label>
+            </div>
+            <div class="radio-opt">
+              <input type="radio" name="bar1" id="b1_no" value="0" onchange="calc()">
+              <label for="b1_no" style="min-width:70px;">0 pts ❌</label>
+            </div>
+          </div>
+        </div>
+        <div class="tile-item" style="align-items:center; text-align:center;">
+          <div class="tile-label" style="justify-content:center;"><div class="dot" style="background:#ff4f6a;"></div>Barrier 2</div>
+          <div class="radio-group" style="flex-direction:column; gap:5px; align-items:center;">
+            <div class="radio-opt">
+              <input type="radio" name="bar2" id="b2_ok" value="7" checked onchange="calc()">
+              <label for="b2_ok" style="min-width:70px;">7 pts ✅</label>
+            </div>
+            <div class="radio-opt">
+              <input type="radio" name="bar2" id="b2_no" value="0" onchange="calc()">
+              <label for="b2_no" style="min-width:70px;">0 pts ❌</label>
+            </div>
+          </div>
+        </div>
+        <div class="tile-item" style="align-items:center; text-align:center;">
+          <div class="tile-label" style="justify-content:center;"><div class="dot" style="background:#555;border:1px solid #888;"></div>Barrier 3</div>
+          <div class="radio-group" style="flex-direction:column; gap:5px; align-items:center;">
+            <div class="radio-opt">
+              <input type="radio" name="bar3" id="b3_ok" value="7" checked onchange="calc()">
+              <label for="b3_ok" style="min-width:70px;">7 pts ✅</label>
+            </div>
+            <div class="radio-opt">
+              <input type="radio" name="bar3" id="b3_no" value="0" onchange="calc()">
+              <label for="b3_no" style="min-width:70px;">0 pts ❌</label>
+            </div>
+          </div>
+        </div>
+        <div class="tile-item" style="align-items:center; text-align:center;">
+          <div class="tile-label" style="justify-content:center;"><div class="dot" style="background:#555;border:1px solid #888;"></div>Barrier 4</div>
+          <div class="radio-group" style="flex-direction:column; gap:5px; align-items:center;">
+            <div class="radio-opt">
+              <input type="radio" name="bar4" id="b4_ok" value="7" checked onchange="calc()">
+              <label for="b4_ok" style="min-width:70px;">7 pts ✅</label>
+            </div>
+            <div class="radio-opt">
+              <input type="radio" name="bar4" id="b4_no" value="0" onchange="calc()">
+              <label for="b4_no" style="min-width:70px;">0 pts ❌</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<!-- STICKY SCORE PANEL -->
+<div class="score-panel" style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); max-width:900px; width:90%; z-index:10;">
+  <div class="score-block">
+    <div class="score-label">Tools</div>
+    <div class="score-value tools" id="disp_tools">45</div>
+  </div>
+  <div class="score-divider"></div>
+  <div class="score-block">
+    <div class="score-label">Mosaic</div>
+    <div class="score-value mosaic" id="disp_mosaic">0</div>
+  </div>
+  <div class="score-divider"></div>
+  <div class="score-block">
+    <div class="score-label">Cement</div>
+    <div class="score-value cement" id="disp_cement">0</div>
+  </div>
+  <div class="score-divider"></div>
+  <div class="score-block">
+    <div class="score-label">Barriers</div>
+    <div class="score-value barrier" id="disp_barrier">28</div>
+  </div>
+  <div class="score-divider"></div>
+  <div class="progress-bar-wrap">
+    <div class="progress-label">
+      <span>TOTAL SCORE</span>
+      <span id="disp_pct">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress_fill"></div>
+    </div>
+  </div>
+  <div class="score-block" style="min-width:80px;">
+    <div class="score-label">/ 233</div>
+    <div class="score-value total" id="disp_total">73</div>
+  </div>
+  <button class="btn-reset" onclick="resetAll()">Reset</button>
+</div>
+
+<script>
+  const counts = {
+    yc:0, yi:0, bc:0, bi:0, gc:0, gi:0, wc:0, wi:0,
+    cy:0, cb2:0, cg:0, cw:0
+  };
+
+  const maxCounts = {
+    yc:6, yi:6, bc:6, bi:6, gc:6, gi:6, wc:6, wi:6,
+    cy:10, cb2:10, cg:10, cw:10
+  };
+
+  // Total used per colour for validation
+  function colourUsed(colour) {
+    const corr = colour + 'c', incor = colour + 'i';
+    return (counts[corr]||0) + (counts[incor]||0);
+  }
+
+  function changeCount(key, delta) {
+    const newVal = (counts[key] || 0) + delta;
+    if (newVal < 0) return;
+
+    // For mosaic tiles: colour cap is 6 across correct+incorrect
+    const colourMap = {yc:'y',yi:'y',bc:'b',bi:'b',gc:'g',gi:'g',wc:'w',wi:'w'};
+    if (colourMap[key]) {
+      const col = colourMap[key];
+      const sibling = key.endsWith('c') ? col+'i' : col+'c';
+      if (delta > 0 && (counts[key]||0) + (counts[sibling]||0) >= 6) return;
+    }
+
+    if (newVal > maxCounts[key]) return;
+    counts[key] = newVal;
+    document.getElementById('val_' + key).textContent = newVal;
+    calc();
+  }
+
+  function getRadio(name) {
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? parseInt(el.value) : 0;
+  }
+
+  function calc() {
+    // Tools
+    const tools = getRadio('trowel_rect') + getRadio('cement_bowl') + getRadio('masonry_trowel');
+    document.getElementById('score_trowel_rect').textContent = getRadio('trowel_rect');
+    document.getElementById('score_cement_bowl').textContent = getRadio('cement_bowl');
+    document.getElementById('score_masonry_trowel').textContent = getRadio('masonry_trowel');
+
+    // Mosaic
+    const correctTiles = counts.yc + counts.bc + counts.gc + counts.wc;
+    const incorrectTiles = counts.yi + counts.bi + counts.gi + counts.wi;
+    const mosaic = correctTiles * 10 + incorrectTiles * 5;
+    document.getElementById('score_mosaic').textContent = mosaic;
+    document.getElementById('mosaic_breakdown').textContent =
+      `${correctTiles} correct × 10 pts + ${incorrectTiles} incorrect × 5 pts`;
+
+    // Cement
+    const cementTotal = counts.cy + counts.cb2 + counts.cg + counts.cw;
+    const cement = cementTotal;
+    document.getElementById('score_cement').textContent = cement;
+    document.getElementById('cement_breakdown').textContent =
+      `${cementTotal} elements × 1 pt`;
+
+    // Barriers
+    const barrier = getRadio('bar1') + getRadio('bar2') + getRadio('bar3') + getRadio('bar4');
+
+    // Total
+    const total = tools + mosaic + cement + barrier;
+
+    document.getElementById('disp_tools').textContent = tools;
+    document.getElementById('disp_mosaic').textContent = mosaic;
+    document.getElementById('disp_cement').textContent = cement;
+    document.getElementById('disp_barrier').textContent = barrier;
+    document.getElementById('disp_total').textContent = total;
+
+    const pct = Math.round((total / 233) * 100);
+    document.getElementById('disp_pct').textContent = pct + '%';
+    document.getElementById('progress_fill').style.width = pct + '%';
+  }
+
+  function resetAll() {
+    // Reset radio to defaults (all "outside" / "no" for tools, "ok" for barriers)
+    document.getElementById('tr_n').checked = true;
+    document.getElementById('cb_n').checked = true;
+    document.getElementById('mt_n').checked = true;
+    document.getElementById('b1_ok').checked = true;
+    document.getElementById('b2_ok').checked = true;
+    document.getElementById('b3_ok').checked = true;
+    document.getElementById('b4_ok').checked = true;
+    document.getElementById('tr_c').checked = false;
+    document.getElementById('cb_c').checked = false;
+    document.getElementById('mt_c').checked = false;
+    document.getElementById('b1_no').checked = false;
+    document.getElementById('b2_no').checked = false;
+    document.getElementById('b3_no').checked = false;
+    document.getElementById('b4_no').checked = false;
+
+    // Reset counters
+    for (const k in counts) {
+      counts[k] = 0;
+      document.getElementById('val_' + k).textContent = '0';
+    }
+
+    document.getElementById('teamName').value = '';
+    document.getElementById('timeField').value = '';
+    document.getElementById('roundNum').selectedIndex = 0;
+
+    calc();
+  }
+
+  // Init
+  calc();
+</script>
+</body>
+</html>
